@@ -1,4 +1,4 @@
-deferredApi.js
+deferify.js
 ==============
 
 Interact with iframes, web workers, local objects, or a web server using identical deferred interfaces.
@@ -14,7 +14,7 @@ var service = {
 };
 ```
 
-Now imagine that during development the service implementation changes in a way that it needs to be relocated
+Now imagine that during development the service implementation changes in a way that requires is to be relocated
 to the server and accessed via an AJAX call.  All of your code that uses the service must now be refactored to
 access it asynchronously.
 
@@ -31,24 +31,29 @@ service.add3( 5 ).then(function( xVal ) {
 });
 ```
 
-deferredApi.js creates asynchronous wrappers that provide a uniform service interface.  The service can be
-hosted locally, on the server, lazily loaded as an [AMD][1], or hosted within another browser window, tab, iframe
-or web worker.  A uniform asynchronous interface shields client code from changes to the service implementation,
+You can use deferify.js to create wrappers that always provide a uniform asynchronous service interface.  The service
+may be hosted locally, on the server, lazily loaded as an [AMD][1], or hosted within another browser window, tab, iframe
+or [web worker][3].  A uniform asynchronous interface shields client code from changes to the service implementation,
 initialization time or hosting location.
 
 ```javascript
 // service client
-var localAsyncService = deferredApi.local(service), // synchronous service wrapped as async
-    ajaxService       = deferredApi.ajax(rootUrl),
-    lazyService       = deferredApi.loadAMD(amdUrl),
-    browserService    = deferredApi.connect(frameTabWindowOrWorker), // existing service
-    onDemandWorker    = deferredApi.loadWorker(workerScriptUrl),
-    onDemandFrame     = deferredApi.loadFrame(iframeUrl);
+var localAsyncService = deferify.local(service), // synchronous service wrapped as async
+    ajaxService       = deferify.ajax(rootUrl),
+    browserService    = deferify.connect(iframeOtherWindowOrWorker), // existing service
+    lazyService       = deferify.loadAMD(amdUrl),
+    onDemandWorker    = deferify.loadWorker(workerScriptUrl),
+    onDemandFrame     = deferify.loadFrame(iframeUrl);
 
 // within a service host (window or worker)
 var service = implementation();
-deferredApi.host( service );
+deferify.host( service );
 ```
+
+deferify.js is built on basic serialization, deserialization and point-to-point message routing and response between an
+async interface and its implementation across windows and workers.  Multiple service implementations can be hosted
+within a single window or worker by using portIdentifiers and messages are multi-plexed then routed via
+window.postMessage() and worker.postMessage().  Services can be configured to support multiple connections.
 
 Why?
 ====
@@ -60,28 +65,27 @@ There are several reasons to host a service outside of the browsers main UI thre
 * Accessing data and performing computations in a safe, clean security context
 
 These should all be familiar to anyone using AJAX, but some of these benefits can also be provided locally
-by modern web standards using [IndexedDB][2], [web workers][3], and/or [cross-frame messaging][4].  For example,
-the original motivation for the library:
+by modern web standards using [IndexedDB][2], [web workers][3], and/or [cross-frame messaging][4].  Hiding service
+implementations behind a standard interface enables using the same client code with [progressively enhanced][5]
+service implementations for modern browsers that can increase UI performance and reduce server load.
 
-An application from example.com is loaded via a bookmarklet or browser extension into a page hosted on a 3rd party
-domain.  The application needs to load data and run complex potentially time consuming operations over the data.  The
-example.com application is written to access all data through an asynchronous interface.
+For example: a data access API may use AJAX by default.  If the browser supports IndexedDB data can be cached and
+retrieved locally.  CPU intensive operations that are part of the API can be run locally using web workers if they
+are supported or off-loaded to the server via AJAX if not.  All of these implementations support the same asynchronous
+API:
 
-The asynchronous interface behaves differently depending on the features supported by the browser.  On a legacy browser
-data requests are resolved by issuing cross-domain JSONP requests to the server.  On a modern browser, a cross-domain
-iframe is initialized that spawns web worker processes capable of loading cached data out of IndexedDB storage for
-the example.com domain.  AJAX requests are only issued for data versioning updates and non-cached data.
+```javascript
+var dataService = initDataService();
+dataService.expensiveOperation(arg0, arg1).then(function( result ) {
+    // process the result
+});
+```
 
-The interfaces between the main page and the iframe, the iframe and the workers, and the workers and the data layer can
-each be hidden behind an async interface.  If the browser doesn't support the features further down the stack the
-implementation can fall-back to issuing AJAX requests to the server.
-
-Transparently handling requests locally or remotely depending on browser features can increase performance from the
-users perspective while decreasing load on the servers.  As more and more users upgrade to modern browsers over time
-the benefits are amplified.  Routing requests through standard async interfaces makes developing fall-backs
-straighforward.  
+The syntax supports any combination of implementations listed above.  The client code doesn't care where the data comes
+from or where the processing occurs.
 
 [1]: http://en.wikipedia.org/wiki/Asynchronous_module_definition
 [2]: https://developer.mozilla.org/en-US/docs/IndexedDB
 [3]: https://developer.mozilla.org/en-US/docs/Web/Guide/Performance/Using_web_workers
 [4]: https://developer.mozilla.org/en-US/docs/Web/API/Window.postMessage
+[5]: http://en.wikipedia.org/wiki/Progressive_enhancement
