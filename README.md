@@ -1,4 +1,4 @@
-deferify.js
+asyncApi.js
 ==============
 
 Interact with iframes, web workers, local objects, or a web server using identical deferred interfaces.
@@ -31,26 +31,26 @@ service.add3( 5 ).then(function( xVal ) {
 });
 ```
 
-You can use deferify.js to create wrappers that always provide a uniform asynchronous service interface.  The service
+You can use asyncApi.js to create wrappers that always provide a uniform asynchronous service interface.  The service
 may be hosted locally, on the server, lazily loaded as an [AMD][1], or hosted within another browser window, tab, iframe
 or [web worker][3].  A uniform asynchronous interface shields client code from changes to the service implementation,
 initialization time or hosting location.
 
 ```javascript
 // service client
-var localAsyncService = deferify.local(service), // synchronous service wrapped as async
-    ajaxService       = deferify.ajax(rootUrl),
-    browserService    = deferify.connect(iframeOtherWindowOrWorker), // existing service
-    lazyService       = deferify.loadAMD(amdUrl),
-    onDemandWorker    = deferify.loadWorker(workerScriptUrl),
-    onDemandFrame     = deferify.loadFrame(iframeUrl);
+var localAsyncService = asyncApi.local(service), // synchronous service wrapped as async
+    ajaxService       = asyncApi.ajax(rootUrl),
+    browserService    = asyncApi.connect(iframeOtherWindowOrWorker), // existing service
+    lazyService       = asyncApi.loadAMD(amdUrl),
+    onDemandWorker    = asyncApi.loadWorker(workerScriptUrl),
+    onDemandFrame     = asyncApi.loadFrame(iframeUrl);
 
 // within a service host (window or worker)
 var service = implementation();
-deferify.host( service );
+asyncApi.host( service );
 ```
 
-deferify.js is built on basic serialization, deserialization and point-to-point message routing and response between an
+asyncApi.js is built on basic serialization, deserialization and point-to-point message routing and response between an
 async interface and its implementation across windows and workers.  Multiple service implementations can be hosted
 within a single window or worker by using portIdentifiers and messages are multi-plexed then routed via
 window.postMessage() and worker.postMessage().  Services can be configured to support multiple connections.
